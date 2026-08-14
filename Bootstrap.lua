@@ -55,6 +55,6 @@ eventFrame:SetScript("OnEvent", function(_, event, loadedAddon)
         Scheduler:SetReady(true)
         Scheduler:Refresh()
     elseif initialized and event ~= "ADDON_LOADED" then
-        Scheduler:Refresh()
+        Scheduler:QueueRefresh()
     end
 end)

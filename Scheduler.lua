@@ -5,8 +5,11 @@ local UI = ns.UI
 local Scheduler = {
     eventTimer = nil,
     retryTimer = nil,
+    refreshTimer = nil,
+    refreshCount = 0,
     ready = false,
     reminderStates = {},
+    activeReminders = {},
 }
 ns.Scheduler = Scheduler
 
@@ -20,6 +23,15 @@ end
 
 function Scheduler:SetReady(ready)
     self.ready = ready
+end
+
+function Scheduler:QueueRefresh()
+    if not self.ready or self.refreshTimer then return end
+
+    self.refreshTimer = C_Timer.NewTimer(0.5, function()
+        self.refreshTimer = nil
+        self:Refresh()
+    end)
 end
 
 function Scheduler:ScheduleRetry()
@@ -42,26 +54,41 @@ local function HasPendingStarts(states)
     return false
 end
 
-local function SnapshotEventInfo(eventInfo)
-    return {
-        eventKey = eventInfo.eventKey,
-        eventID = eventInfo.eventID,
-        areaPoiID = eventInfo.areaPoiID,
-        startTime = eventInfo.startTime,
-        endTime = eventInfo.endTime,
-        duration = eventInfo.duration,
-        displayInfo = eventInfo.displayInfo,
-    }
+local function UpdateEventSnapshot(snapshot, eventInfo)
+    snapshot = snapshot or {}
+    snapshot.eventKey = eventInfo.eventKey
+    snapshot.eventID = eventInfo.eventID
+    snapshot.areaPoiID = eventInfo.areaPoiID
+    snapshot.startTime = eventInfo.startTime
+    snapshot.endTime = eventInfo.endTime
+    snapshot.duration = eventInfo.duration
+    snapshot.displayInfo = eventInfo.displayInfo
+    return snapshot
+end
+
+function Scheduler:GetRefreshCount()
+    return self.refreshCount
+end
+
+function Scheduler:GetTrackedReminderCount()
+    local count = 0
+    for _ in pairs(self.reminderStates) do
+        count = count + 1
+    end
+    return count
 end
 
 function Scheduler:Refresh()
     if not self.ready or not C_EventScheduler then return end
 
+    self.refreshCount = self.refreshCount + 1
+    CancelTimer(self, "refreshTimer")
     CancelTimer(self, "eventTimer")
 
     if not C_EventScheduler.HasSavedReminders() and not HasPendingStarts(self.reminderStates) then
         CancelTimer(self, "retryTimer")
         wipe(self.reminderStates)
+        wipe(self.activeReminders)
         return
     end
 
@@ -75,7 +102,8 @@ function Scheduler:Refresh()
 
     local now = time()
     local nextWait = math.huge
-    local activeReminders = {}
+    local activeReminders = self.activeReminders
+    wipe(activeReminders)
     local warningSeconds = Config:GetWarningSeconds()
     local deadSeconds = 10
     if Constants and Constants.EventScheduler and Constants.EventScheduler.SCHEDULED_EVENT_REMINDER_DEAD_SECONDS then
@@ -94,7 +122,7 @@ function Scheduler:Refresh()
                 self.reminderStates[eventKey] = state
             end
             state.reminderSeen = true
-            state.eventInfo = SnapshotEventInfo(eventInfo)
+            state.eventInfo = UpdateEventSnapshot(state.eventInfo, eventInfo)
             state.startTime = eventInfo.startTime
             state.endTime = eventInfo.endTime
             state.areaPoiID = eventInfo.areaPoiID

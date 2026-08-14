@@ -36,12 +36,18 @@ function Commands:PrintMemory()
     for _, category in pairs(Settings.categoryControls or {}) do
         cachedControls = cachedControls + #category.controls
     end
+    local trackedReminders = ns.Scheduler and ns.Scheduler.GetTrackedReminderCount
+        and ns.Scheduler:GetTrackedReminderCount() or 0
+    local refreshCount = ns.Scheduler and ns.Scheduler.GetRefreshCount
+        and ns.Scheduler:GetRefreshCount() or 0
 
     ns.Print(string.format(
-        "Memory: %.1f KB addon, %.1f KB Lua heap, %d cached settings controls.",
+        "Memory: %.1f KB addon, %.1f KB Lua heap, %d cached controls, %d tracked reminders, %d refreshes.",
         addonMemory,
         luaHeap,
-        cachedControls
+        cachedControls,
+        trackedReminders,
+        refreshCount
     ))
 end
 

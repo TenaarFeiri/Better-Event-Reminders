@@ -87,6 +87,12 @@ Scheduler:Refresh()
 assertEqual(#alerts, 1, "warning count")
 assertEqual(alerts[1].alertType, "warning", "warning type")
 assertEqual(Scheduler.reminderStates["warning-and-start"].startTime, 1033, "snapshot start time")
+local snapshot = Scheduler.reminderStates["warning-and-start"].eventInfo
+local activeReminders = Scheduler.activeReminders
+now = 1001
+Scheduler:Refresh()
+assertEqual(Scheduler.reminderStates["warning-and-start"].eventInfo, snapshot, "snapshot reuse")
+assertEqual(Scheduler.activeReminders, activeReminders, "active-reminder table reuse")
 
 now = 1033
 hasReminder = false
@@ -126,5 +132,14 @@ currentEvent.hasReminder = false
 Scheduler:Refresh()
 assertEqual(#alerts, 1, "dead-window start count")
 assertEqual(alerts[1].alertType, "started", "dead-window start type")
+
+local refreshCount = Scheduler:GetRefreshCount()
+Scheduler.refreshTimer = nil
+Scheduler:QueueRefresh()
+local queuedRefresh = Scheduler.refreshTimer
+Scheduler:QueueRefresh()
+assertEqual(Scheduler.refreshTimer, queuedRefresh, "refresh coalescing")
+queuedRefresh.callback()
+assertEqual(Scheduler:GetRefreshCount(), refreshCount + 1, "queued refresh execution")
 
 print("scheduler smoke tests passed")
