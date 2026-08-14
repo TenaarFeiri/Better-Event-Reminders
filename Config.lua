@@ -6,6 +6,7 @@ ns.Config = Config
 local DEFAULTS = {
     alertDuration = 8,
     sound = true,
+    showMinimapButton = true,
     soundKit = "UI_EVENT_SCHEDULER_CHIME",
     locked = true,
     suppressInstanceCombat = true,
@@ -65,6 +66,15 @@ local ALERT_OPTIONS = {
     },
 }
 
+local INTERFACE_OPTIONS = {
+    {
+        key = "showMinimapButton",
+        kind = "boolean",
+        label = "Show minimap button",
+        tooltip = "Show a minimap button that opens Better Event Reminders.",
+    },
+}
+
 local SUPPRESSION_OPTIONS = {
     {
         key = "suppressInstanceCombat",
@@ -100,6 +110,12 @@ Config.Categories = {
         options = ALERT_OPTIONS,
     },
     {
+        id = "interface",
+        label = "Interface",
+        description = "Choose how Better Event Reminders is opened.",
+        options = INTERFACE_OPTIONS,
+    },
+    {
         id = "suppression",
         label = "Suppression",
         description = "Prevent alerts from interrupting combat and challenging content.",
@@ -122,6 +138,14 @@ local function CopyPosition(position)
         x = position.x,
         y = position.y,
     }
+end
+
+local function EnsureMinimap(db)
+    if type(db.minimap) ~= "table" then
+        db.minimap = { hide = false, angle = 220 }
+    end
+    if type(db.minimap.hide) ~= "boolean" then db.minimap.hide = false end
+    if type(db.minimap.angle) ~= "number" then db.minimap.angle = 220 end
 end
 
 local function EnsurePosition(db, key)
@@ -156,6 +180,7 @@ function Config:Initialize()
         db._settingsVersion = SETTINGS_VERSION
     end
 
+    EnsureMinimap(db)
     EnsurePosition(db, "position")
     EnsurePosition(db, "settingsPosition")
 end
