@@ -2,6 +2,7 @@ local _, ns = ...
 
 local Config = ns.Config
 local UI = ns.UI
+local Integration = ns.Integration
 local Scheduler = ns.Scheduler
 local initialized = false
 local SCHEDULER_SETTINGS = {
@@ -14,6 +15,9 @@ local SCHEDULER_SETTINGS = {
 Config:SetOnChanged(function(key)
     if SCHEDULER_SETTINGS[key] then
         Scheduler:Refresh()
+    end
+    if key == "showMinimapButton" then
+        Integration:ApplyMinimapVisibility()
     end
     if key == "locked" then
         UI:UpdateMovableState()
@@ -43,9 +47,11 @@ eventFrame:SetScript("OnEvent", function(_, event, loadedAddon)
         if loadedAddon ~= ns.Name then return end
         Config:Initialize()
         UI:Create()
+        Integration:Initialize()
         Scheduler:SetReady(false)
         initialized = true
     elseif initialized and (event == "PLAYER_ENTERING_WORLD" or event == "VARIABLES_LOADED") then
+        Integration:Initialize()
         Scheduler:SetReady(true)
         Scheduler:Refresh()
     elseif initialized and event ~= "ADDON_LOADED" then
