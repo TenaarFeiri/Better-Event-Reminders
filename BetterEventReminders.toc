@@ -2,7 +2,7 @@
 ## Title: Better Event Reminders
 ## Notes: Displays an on-screen alert for reminders set on map events.
 ## Author: Sara Schulze Øverby
-## Version: 0.1.0
+## Version: 0.2.0
 ## IconAtlas: event-scheduler-reminder-icon
 ## SavedVariables: BetterEventRemindersDB
 ## LoadSavedVariablesFirst: 1
