@@ -139,6 +139,55 @@ function UI:Create()
     end)
     frame.CloseButton = closeButton
 
+    local glow = frame:CreateTexture(nil, "OVERLAY", -1)
+    glow:SetTexture("Interface\\Buttons\\UI-ActionButton-Border")
+    glow:SetBlendMode("ADD")
+    glow:SetVertexColor(0.35, 0.75, 1, 1)
+    glow:SetPoint("TOPLEFT", frame, "TOPLEFT", -8, 8)
+    glow:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 8, -8)
+    glow:SetAlpha(0)
+    frame.Glow = glow
+
+    local fadeIn = frame:CreateAnimationGroup()
+    fadeIn:SetToFinalAlpha(true)
+    local fadeInAlpha = fadeIn:CreateAnimation("Alpha")
+    fadeInAlpha:SetFromAlpha(0)
+    fadeInAlpha:SetToAlpha(1)
+    fadeInAlpha:SetDuration(0.2)
+    fadeInAlpha:SetSmoothing("OUT")
+    frame.FadeIn = fadeIn
+
+    local glowIn = frame:CreateAnimationGroup()
+    glowIn:SetToFinalAlpha(true)
+    local glowAlpha = glowIn:CreateAnimation("Alpha")
+    glowAlpha:SetFromAlpha(0)
+    glowAlpha:SetToAlpha(0.85)
+    glowAlpha:SetDuration(0.12)
+    glowAlpha:SetSmoothing("OUT")
+    local glowFade = glowIn:CreateAnimation("Alpha")
+    glowFade:SetFromAlpha(0.85)
+    glowFade:SetToAlpha(0)
+    glowFade:SetDuration(0.55)
+    glowFade:SetStartDelay(0.12)
+    glowFade:SetSmoothing("OUT")
+    frame.GlowIn = glowIn
+
+    local fadeOut = frame:CreateAnimationGroup()
+    fadeOut:SetToFinalAlpha(true)
+    local fadeOutAlpha = fadeOut:CreateAnimation("Alpha")
+    fadeOutAlpha:SetFromAlpha(1)
+    fadeOutAlpha:SetToAlpha(0)
+    fadeOutAlpha:SetDuration(0.2)
+    fadeOutAlpha:SetSmoothing("IN")
+    frame.FadeOut = fadeOut
+    fadeOut:SetScript("OnFinished", function()
+        if not alertActive and not positioning then
+            frame:Hide()
+            frame:SetAlpha(1)
+            glow:SetAlpha(0)
+        end
+    end)
+
     frame:SetScript("OnDragStart", function(alertFrame)
         local currentDB = Config:GetDB()
         if not currentDB.locked then
@@ -174,6 +223,26 @@ function UI:UpdateMovableState()
     end
 end
 
+function UI:PlayOpenAnimation()
+    if not self.frame then return end
+    self.frame.FadeOut:Stop()
+    self.frame.FadeIn:Stop()
+    self.frame.GlowIn:Stop()
+    self.frame:SetAlpha(0)
+    self.frame.Glow:SetAlpha(0)
+    self.frame:Show()
+    self.frame.FadeIn:Play()
+    self.frame.GlowIn:Play()
+end
+
+function UI:PlayCloseAnimation()
+    if not self.frame or not self.frame:IsShown() then return end
+    self.frame.FadeIn:Stop()
+    self.frame.GlowIn:Stop()
+    self.frame.FadeOut:Stop()
+    self.frame.FadeOut:Play()
+end
+
 function UI:CloseAlert()
     alertSerial = alertSerial + 1
     alertActive = false
@@ -181,7 +250,7 @@ function UI:CloseAlert()
     self.currentEventInfo = nil
     if self.frame then
         self.frame.MapButton:Hide()
-        self.frame:Hide()
+        self:PlayCloseAnimation()
     end
 end
 
@@ -196,13 +265,13 @@ function UI:ShowPositioningHint()
     self.frame.Message:SetText("Drag to reposition, then lock the frame")
     self.frame.MapButton:Hide()
     self.frame:SetBackdropBorderColor(0.35, 0.75, 1, 1)
-    self.frame:Show()
+    self:PlayOpenAnimation()
 end
 
 function UI:HidePositioningHint()
     positioning = false
     if self.frame and not alertActive then
-        self.frame:Hide()
+        self:PlayCloseAnimation()
     end
 end
 
@@ -289,7 +358,7 @@ function UI:ShowAlert(eventInfo, alertType, seconds, force)
         frame:SetBackdropBorderColor(0.35, 1, 0.45, 1)
     end
 
-    frame:Show()
+    self:PlayOpenAnimation()
     self:PlayAlertSound()
     C_Timer.After(Config:GetDB().alertDuration, function()
         if alertSerial == serial then
@@ -297,7 +366,7 @@ function UI:ShowAlert(eventInfo, alertType, seconds, force)
             self.currentEventInfo = nil
             frame.MapButton:Hide()
             if not positioning then
-                frame:Hide()
+                self:PlayCloseAnimation()
             end
         end
     end)
