@@ -170,18 +170,6 @@ local function ResolveMapForAreaPoi(areaPoiID, searchChildren)
     return nil
 end
 
-local function GetNextInactiveEvent(scheduledEvents)
-    local now = time()
-    local nextEvent
-    for _, eventInfo in ipairs(scheduledEvents or {}) do
-        if eventInfo.areaPoiID and eventInfo.startTime and eventInfo.startTime > now
-            and (not nextEvent or eventInfo.startTime < nextEvent.startTime) then
-            nextEvent = eventInfo
-        end
-    end
-    return nextEvent
-end
-
 local function GetNextTestEvent()
     if not C_EventScheduler or not C_EventScheduler.GetScheduledEvents then
         return { areaPoiID = 0 }
