@@ -102,8 +102,11 @@ function UI:Create()
     frame.Message:SetJustifyH("CENTER")
 
     local mapButton = CreateFrame("Button", nil, frame)
+    mapButton:SetFrameLevel(frame:GetFrameLevel() + 10)
+    mapButton:EnableMouse(true)
     mapButton:SetSize(100, 22)
     mapButton:SetPoint("BOTTOM", frame, "BOTTOM", 0, 10)
+    mapButton:RegisterForClicks("LeftButtonUp")
     local mapBackground = mapButton:CreateTexture(nil, "BACKGROUND")
     mapBackground:SetAllPoints()
     mapBackground:SetColorTexture(0.12, 0.12, 0.12, 0.95)
@@ -114,11 +117,12 @@ function UI:Create()
     mapLabel:SetPoint("CENTER")
     mapLabel:SetText("Open Map")
     mapButton:SetScript("OnClick", function()
+        ns.Print("DEBUG: Open Map button clicked")
         self:OpenEventMap()
     end)
     mapButton:SetScript("OnMouseDown", function()
         frame._mapButtonClick = true
-        C_Timer.After(0.1, function()
+        C_Timer.After(0.3, function()
             frame._mapButtonClick = false
         end)
     end)
@@ -126,8 +130,11 @@ function UI:Create()
     frame.MapButton = mapButton
 
     local closeButton = CreateFrame("Button", nil, frame)
+    closeButton:SetFrameLevel(frame:GetFrameLevel() + 10)
+    closeButton:EnableMouse(true)
     closeButton:SetSize(24, 24)
     closeButton:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -5, -5)
+    closeButton:RegisterForClicks("LeftButtonUp")
     local closeHighlight = closeButton:CreateTexture(nil, "HIGHLIGHT")
     closeHighlight:SetAllPoints()
     closeHighlight:SetColorTexture(1, 1, 1, 0.08)
@@ -141,16 +148,69 @@ function UI:Create()
 
     local glowFrame = CreateFrame("Frame", nil, frame)
     glowFrame:SetFrameLevel(math.max(0, frame:GetFrameLevel()))
-    glowFrame:SetPoint("TOPLEFT", frame, "TOPLEFT", -8, 8)
-    glowFrame:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 8, -8)
+    glowFrame:SetPoint("TOPLEFT", frame, "TOPLEFT", -12, 12)
+    glowFrame:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 12, -12)
     glowFrame:EnableMouse(false)
-    local glow = glowFrame:CreateTexture(nil, "OVERLAY")
-    glow:SetTexture("Interface\\Buttons\\UI-ActionButton-Border")
-    glow:SetBlendMode("ADD")
-    glow:SetVertexColor(0.35, 0.75, 1, 1)
-    glow:SetAllPoints()
+
+    local cornerSize = 24
+    local function AddGlowTexture(file, r, g, b, a, setPoints)
+        local tex = glowFrame:CreateTexture(nil, "BORDER")
+        tex:SetDrawLayer("BORDER", -1)
+        tex:SetTexture(file)
+        tex:SetBlendMode("ADD")
+        tex:SetVertexColor(r, g, b, a)
+        setPoints(tex)
+        return tex
+    end
+
+    local r, g, b, a = 0.35, 0.75, 1, 1
+
+    local topLeft = AddGlowTexture("Interface\\Common\\GlowBorder-Corner", r, g, b, a, function(tex)
+        tex:SetSize(cornerSize, cornerSize)
+        tex:SetPoint("TOPLEFT", glowFrame, "TOPLEFT")
+    end)
+
+    local topRight = AddGlowTexture("Interface\\Common\\GlowBorder-Corner", r, g, b, a, function(tex)
+        tex:SetSize(cornerSize, cornerSize)
+        tex:SetPoint("TOPRIGHT", glowFrame, "TOPRIGHT")
+        tex:SetTexCoord(1, 0, 0, 1)
+    end)
+
+    local bottomLeft = AddGlowTexture("Interface\\Common\\GlowBorder-Corner", r, g, b, a, function(tex)
+        tex:SetSize(cornerSize, cornerSize)
+        tex:SetPoint("BOTTOMLEFT", glowFrame, "BOTTOMLEFT")
+        tex:SetTexCoord(0, 1, 1, 0)
+    end)
+
+    local bottomRight = AddGlowTexture("Interface\\Common\\GlowBorder-Corner", r, g, b, a, function(tex)
+        tex:SetSize(cornerSize, cornerSize)
+        tex:SetPoint("BOTTOMRIGHT", glowFrame, "BOTTOMRIGHT")
+        tex:SetTexCoord(1, 0, 1, 0)
+    end)
+
+    AddGlowTexture("Interface\\Common\\GlowBorder-Top", r, g, b, a, function(tex)
+        tex:SetPoint("TOPLEFT", topLeft, "TOPRIGHT")
+        tex:SetPoint("BOTTOMRIGHT", topRight, "BOTTOMLEFT")
+    end)
+
+    AddGlowTexture("Interface\\Common\\GlowBorder-Top", r, g, b, a, function(tex)
+        tex:SetTexCoord(0, 1, 1, 0)
+        tex:SetPoint("TOPLEFT", bottomLeft, "TOPRIGHT")
+        tex:SetPoint("BOTTOMRIGHT", bottomRight, "BOTTOMLEFT")
+    end)
+
+    AddGlowTexture("Interface\\Common\\GlowBorder-Left", r, g, b, a, function(tex)
+        tex:SetPoint("TOPLEFT", topLeft, "BOTTOMLEFT")
+        tex:SetPoint("BOTTOMRIGHT", bottomLeft, "TOPRIGHT")
+    end)
+
+    AddGlowTexture("Interface\\Common\\GlowBorder-Left", r, g, b, a, function(tex)
+        tex:SetTexCoord(1, 0, 0, 1)
+        tex:SetPoint("TOPLEFT", topRight, "BOTTOMLEFT")
+        tex:SetPoint("BOTTOMRIGHT", bottomRight, "TOPRIGHT")
+    end)
+
     glowFrame:SetAlpha(0)
-    frame.Glow = glow
     frame.GlowFrame = glowFrame
 
     local fadeIn = frame:CreateAnimationGroup()
@@ -223,8 +283,7 @@ end
 
 function UI:UpdateMovableState()
     if self.frame then
-        local db = Config:GetDB()
-        self.frame:EnableMouse(not db.locked or db.clickToClose)
+        self.frame:EnableMouse(true)
     end
 end
 
@@ -306,27 +365,42 @@ function UI:SavePosition()
 end
 
 function UI:OpenEventMap()
+    ns.Print("DEBUG: OpenEventMap called")
     local eventInfo = self.currentEventInfo
-    if not eventInfo or not eventInfo.areaPoiID or eventInfo.areaPoiID == 0 then return end
+    if not eventInfo or not eventInfo.areaPoiID or eventInfo.areaPoiID == 0 then
+        ns.Print("No event location is available for this alert.")
+        return
+    end
 
     local mapID
     if C_EventScheduler and C_EventScheduler.GetEventUiMapID then
-        mapID = C_EventScheduler.GetEventUiMapID(eventInfo.areaPoiID)
+        local ok, result = pcall(C_EventScheduler.GetEventUiMapID, eventInfo.areaPoiID)
+        if ok then mapID = result end
     end
 
     local poiInfo
     if C_AreaPoiInfo and C_AreaPoiInfo.GetAreaPOIInfo then
-        poiInfo = C_AreaPoiInfo.GetAreaPOIInfo(mapID, eventInfo.areaPoiID)
-            or C_AreaPoiInfo.GetAreaPOIInfo(nil, eventInfo.areaPoiID)
+        local ok, result = pcall(C_AreaPoiInfo.GetAreaPOIInfo, mapID, eventInfo.areaPoiID)
+        if ok then poiInfo = result end
+        if not poiInfo then
+            ok, result = pcall(C_AreaPoiInfo.GetAreaPOIInfo, nil, eventInfo.areaPoiID)
+            if ok then poiInfo = result end
+        end
     end
     mapID = mapID or (poiInfo and poiInfo.linkedUiMapID)
 
+    local canSetWaypoint = false
     if mapID and poiInfo and poiInfo.position and C_Map
         and C_Map.CanSetUserWaypointOnMap and C_Map.SetUserWaypoint
-        and UiMapPoint and UiMapPoint.CreateFromVector2D
-        and C_Map.CanSetUserWaypointOnMap(mapID) then
+        and UiMapPoint and UiMapPoint.CreateFromVector2D then
+        local ok, result = pcall(C_Map.CanSetUserWaypointOnMap, mapID)
+        canSetWaypoint = ok and result == true
+    end
+
+    if canSetWaypoint then
         local point = UiMapPoint.CreateFromVector2D(mapID, poiInfo.position)
-        if C_Map.SetUserWaypoint(point) then
+        local ok, wasSet = pcall(C_Map.SetUserWaypoint, point)
+        if ok and wasSet then
             if OpenMapToUserWaypoint then
                 OpenMapToUserWaypoint()
             elseif OpenWorldMap then
@@ -336,9 +410,19 @@ function UI:OpenEventMap()
         end
     end
 
-    if OpenMapToEventPoi then
-        OpenMapToEventPoi(eventInfo.areaPoiID)
+    if OpenWorldMap then
+        ns.Print("DEBUG: trying OpenWorldMap with mapID " .. tostring(mapID))
+        local ok = pcall(OpenWorldMap, mapID)
+        ns.Print("DEBUG: OpenWorldMap pcall ok=" .. tostring(ok))
+        if ok then
+            if mapID and EventRegistry then
+                EventRegistry:TriggerEvent("PingAreaPOIEvent", eventInfo.areaPoiID)
+            end
+            return
+        end
     end
+
+    ns.Print("Unable to open a map for this event.")
 end
 
 function UI:PlayAlertSound(force)

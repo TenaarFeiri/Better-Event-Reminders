@@ -7,6 +7,7 @@ ns.Integration = Integration
 local function CreatePlainButton(parent, width, height, text)
     local button = CreateFrame("Button", nil, parent)
     button:SetSize(width, height)
+    button:RegisterForClicks("LeftButtonUp")
 
     local background = button:CreateTexture(nil, "BACKGROUND")
     background:SetAllPoints()
