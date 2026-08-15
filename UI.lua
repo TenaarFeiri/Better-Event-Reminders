@@ -8,7 +8,6 @@ ns.UI = UI
 local alertSerial = 0
 local alertActive = false
 local positioning = false
-local pendingWaypointTimer
 local zoneMapCache = {}
 
 local function FormatDuration(seconds)
@@ -585,27 +584,6 @@ local function TrySetEventWaypoint(eventInfo)
     return false, mapID
 end
 
-local function RetryPendingWaypoint(eventInfo)
-    if pendingWaypointTimer then
-        pendingWaypointTimer:Cancel()
-        pendingWaypointTimer = nil
-    end
-
-    local function TryAgain()
-        local now = time()
-        if eventInfo.endTime and now > eventInfo.endTime then
-            return
-        end
-        local wasSet, mapID = TrySetEventWaypoint(eventInfo)
-        if wasSet or TrySuperTrackEvent(eventInfo, mapID) then
-            return
-        end
-        pendingWaypointTimer = C_Timer.NewTimer(5, TryAgain)
-    end
-
-    pendingWaypointTimer = C_Timer.NewTimer(5, TryAgain)
-end
-
 function UI:OpenEventMap()
     local eventInfo = self.currentEventInfo
     if not eventInfo or not eventInfo.areaPoiID or eventInfo.areaPoiID == 0 then
@@ -626,10 +604,6 @@ function UI:OpenEventMap()
         if ok then
             if mapID and EventRegistry then
                 EventRegistry:TriggerEvent("PingAreaPOIEvent", eventInfo.areaPoiID)
-            end
-            if eventInfo.startTime and eventInfo.startTime > time() then
-                RetryPendingWaypoint(eventInfo)
-                ns.Print("The event marker is not active yet; BER will set the waypoint when it appears.")
             end
             return
         end
