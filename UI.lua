@@ -618,7 +618,6 @@ function UI:OpenEventMap()
         return
     end
     if TrySuperTrackEvent(eventInfo, mapID) then
-        ns.Print("Using Blizzard's event map pin; this event does not expose waypoint coordinates.")
         return
     end
 
