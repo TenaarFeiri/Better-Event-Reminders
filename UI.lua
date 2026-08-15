@@ -43,6 +43,25 @@ local function GetEventName(eventInfo)
     return "Map event"
 end
 
+local function GetNextTestEvent()
+    if not C_EventScheduler or not C_EventScheduler.GetScheduledEvents then
+        return { areaPoiID = 0 }
+    end
+
+    local now = time()
+    local nextEvent
+    local scheduledEvents = C_EventScheduler.GetScheduledEvents()
+    if scheduledEvents then
+        for _, eventInfo in ipairs(scheduledEvents) do
+            if eventInfo.areaPoiID and eventInfo.startTime and eventInfo.startTime >= now
+                and (not nextEvent or eventInfo.startTime < nextEvent.startTime) then
+                nextEvent = eventInfo
+            end
+        end
+    end
+    return nextEvent or { areaPoiID = 0 }
+end
+
 function UI:Create()
     local db = Config:GetDB()
     local frame = CreateFrame("Frame", "BetterEventRemindersAlertFrame", UIParent, "BackdropTemplate")
@@ -82,6 +101,24 @@ function UI:Create()
     frame.Message:SetWidth(450)
     frame.Message:SetJustifyH("CENTER")
 
+    local mapButton = CreateFrame("Button", nil, frame)
+    mapButton:SetSize(100, 22)
+    mapButton:SetPoint("BOTTOM", frame, "BOTTOM", 0, 10)
+    local mapBackground = mapButton:CreateTexture(nil, "BACKGROUND")
+    mapBackground:SetAllPoints()
+    mapBackground:SetColorTexture(0.12, 0.12, 0.12, 0.95)
+    local mapHighlight = mapButton:CreateTexture(nil, "HIGHLIGHT")
+    mapHighlight:SetAllPoints()
+    mapHighlight:SetColorTexture(1, 1, 1, 0.08)
+    local mapLabel = mapButton:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    mapLabel:SetPoint("CENTER")
+    mapLabel:SetText("Open Map")
+    mapButton:SetScript("OnClick", function()
+        self:OpenEventMap()
+    end)
+    mapButton:Hide()
+    frame.MapButton = mapButton
+
     frame:SetScript("OnDragStart", function(alertFrame)
         local currentDB = Config:GetDB()
         if not currentDB.locked then
@@ -109,7 +146,9 @@ function UI:ShowPositioningHint()
     alertActive = false
     positioning = true
     self.frame.Title:SetText("Better Event Reminders")
+    self.currentEventInfo = nil
     self.frame.Message:SetText("Drag to reposition, then lock the frame")
+    self.frame.MapButton:Hide()
     self.frame:SetBackdropBorderColor(0.35, 0.75, 1, 1)
     self.frame:Show()
 end
@@ -131,6 +170,42 @@ function UI:SavePosition()
         position.relativePoint = relativePoint or point
         position.x = x or 0
         position.y = y or 0
+    end
+end
+
+function UI:OpenEventMap()
+    local eventInfo = self.currentEventInfo
+    if not eventInfo or not eventInfo.areaPoiID or eventInfo.areaPoiID == 0 then return end
+
+    local mapID
+    if C_EventScheduler and C_EventScheduler.GetEventUiMapID then
+        mapID = C_EventScheduler.GetEventUiMapID(eventInfo.areaPoiID)
+    end
+
+    local poiInfo
+    if C_AreaPoiInfo and C_AreaPoiInfo.GetAreaPOIInfo then
+        poiInfo = C_AreaPoiInfo.GetAreaPOIInfo(mapID, eventInfo.areaPoiID)
+            or C_AreaPoiInfo.GetAreaPOIInfo(nil, eventInfo.areaPoiID)
+    end
+    mapID = mapID or (poiInfo and poiInfo.linkedUiMapID)
+
+    if mapID and poiInfo and poiInfo.position and C_Map
+        and C_Map.CanSetUserWaypointOnMap and C_Map.SetUserWaypoint
+        and UiMapPoint and UiMapPoint.CreateFromVector2D
+        and C_Map.CanSetUserWaypointOnMap(mapID) then
+        local point = UiMapPoint.CreateFromVector2D(mapID, poiInfo.position)
+        if C_Map.SetUserWaypoint(point) then
+            if OpenMapToUserWaypoint then
+                OpenMapToUserWaypoint()
+            elseif OpenWorldMap then
+                OpenWorldMap(mapID)
+            end
+            return
+        end
+    end
+
+    if OpenMapToEventPoi then
+        OpenMapToEventPoi(eventInfo.areaPoiID)
     end
 end
 
@@ -156,6 +231,8 @@ function UI:ShowAlert(eventInfo, alertType, seconds, force)
     positioning = false
     local serial = alertSerial
     local frame = self.frame
+    self.currentEventInfo = eventInfo
+    frame.MapButton:SetShown(eventInfo.areaPoiID ~= nil and eventInfo.areaPoiID ~= 0)
 
     frame.Title:SetText(GetEventName(eventInfo))
     if alertType == "warning" then
@@ -171,6 +248,8 @@ function UI:ShowAlert(eventInfo, alertType, seconds, force)
     C_Timer.After(Config:GetDB().alertDuration, function()
         if alertSerial == serial then
             alertActive = false
+            self.currentEventInfo = nil
+            frame.MapButton:Hide()
             if not positioning then
                 frame:Hide()
             end
@@ -179,7 +258,7 @@ function UI:ShowAlert(eventInfo, alertType, seconds, force)
 end
 
 function UI:ShowTestAlert()
-    self:ShowAlert({ areaPoiID = 0 }, "warning", Config:GetWarningSeconds(), true)
+    self:ShowAlert(GetNextTestEvent(), "warning", Config:GetWarningSeconds(), true)
 end
 
 UI.FormatDuration = FormatDuration
