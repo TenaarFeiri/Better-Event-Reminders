@@ -139,7 +139,7 @@ function UI:Create()
     end)
     frame.CloseButton = closeButton
 
-    local glow = frame:CreateTexture(nil, "OVERLAY", -1)
+    local glow = frame:CreateTexture(nil, "OVERLAY")
     glow:SetTexture("Interface\\Buttons\\UI-ActionButton-Border")
     glow:SetBlendMode("ADD")
     glow:SetVertexColor(0.35, 0.75, 1, 1)
@@ -225,6 +225,12 @@ end
 
 function UI:PlayOpenAnimation()
     if not self.frame then return end
+    if not self.frame.FadeIn or not self.frame.GlowIn or not self.frame.FadeOut then
+        self.frame:SetAlpha(1)
+        self.frame.Glow:SetAlpha(0)
+        self.frame:Show()
+        return
+    end
     self.frame.FadeOut:Stop()
     self.frame.FadeIn:Stop()
     self.frame.GlowIn:Stop()
@@ -237,6 +243,12 @@ end
 
 function UI:PlayCloseAnimation()
     if not self.frame or not self.frame:IsShown() then return end
+    if not self.frame.FadeIn or not self.frame.GlowIn or not self.frame.FadeOut then
+        self.frame:Hide()
+        self.frame:SetAlpha(1)
+        self.frame.Glow:SetAlpha(0)
+        return
+    end
     self.frame.FadeIn:Stop()
     self.frame.GlowIn:Stop()
     self.frame.FadeOut:Stop()
