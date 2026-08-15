@@ -9,6 +9,7 @@ local DEFAULTS = {
     showMinimapButton = true,
     soundKit = "UI_EVENT_SCHEDULER_CHIME",
     locked = true,
+    clickToClose = false,
     suppressInstanceCombat = true,
     suppressRegularCombat = false,
     suppressChallengeMode = true,
@@ -63,6 +64,12 @@ local ALERT_OPTIONS = {
         kind = "boolean",
         label = "Lock alert frame position",
         tooltip = "Prevent the alert frame from being moved by dragging.",
+    },
+    {
+        key = "clickToClose",
+        kind = "boolean",
+        label = "Close alert when clicked",
+        tooltip = "Close the alert by clicking anywhere on its background or text. The Open Map button remains separate.",
     },
 }
 

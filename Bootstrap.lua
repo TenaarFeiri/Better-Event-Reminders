@@ -19,7 +19,7 @@ Config:SetOnChanged(function(key)
     if key == "showMinimapButton" then
         Integration:ApplyMinimapVisibility()
     end
-    if key == "locked" then
+    if key == "locked" or key == "clickToClose" then
         UI:UpdateMovableState()
         if Config:Get("locked") then
             UI:HidePositioningHint()

@@ -116,18 +116,52 @@ function UI:Create()
     mapButton:SetScript("OnClick", function()
         self:OpenEventMap()
     end)
+    mapButton:SetScript("OnMouseDown", function()
+        frame._mapButtonClick = true
+        C_Timer.After(0.1, function()
+            frame._mapButtonClick = false
+        end)
+    end)
     mapButton:Hide()
     frame.MapButton = mapButton
+
+    local closeButton = CreateFrame("Button", nil, frame)
+    closeButton:SetSize(24, 24)
+    closeButton:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -5, -5)
+    local closeHighlight = closeButton:CreateTexture(nil, "HIGHLIGHT")
+    closeHighlight:SetAllPoints()
+    closeHighlight:SetColorTexture(1, 1, 1, 0.08)
+    local closeLabel = closeButton:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    closeLabel:SetPoint("CENTER")
+    closeLabel:SetText("X")
+    closeButton:SetScript("OnClick", function()
+        self:CloseAlert()
+    end)
+    frame.CloseButton = closeButton
 
     frame:SetScript("OnDragStart", function(alertFrame)
         local currentDB = Config:GetDB()
         if not currentDB.locked then
+            alertFrame._dragging = true
             alertFrame:StartMoving()
         end
     end)
     frame:SetScript("OnDragStop", function(alertFrame)
-        alertFrame:StopMovingOrSizing()
-        self:SavePosition()
+        if alertFrame._dragging then
+            alertFrame:StopMovingOrSizing()
+            alertFrame._dragging = nil
+            alertFrame._wasDragged = true
+            C_Timer.After(0, function()
+                alertFrame._wasDragged = nil
+            end)
+            self:SavePosition()
+        end
+    end)
+    frame:SetScript("OnMouseUp", function(alertFrame, button)
+        if button == "LeftButton" and not alertFrame._wasDragged
+            and not alertFrame._mapButtonClick and Config:Get("clickToClose") then
+            self:CloseAlert()
+        end
     end)
     frame:Hide()
     self:UpdateMovableState()
@@ -135,7 +169,19 @@ end
 
 function UI:UpdateMovableState()
     if self.frame then
-        self.frame:EnableMouse(not Config:GetDB().locked)
+        local db = Config:GetDB()
+        self.frame:EnableMouse(not db.locked or db.clickToClose)
+    end
+end
+
+function UI:CloseAlert()
+    alertSerial = alertSerial + 1
+    alertActive = false
+    positioning = false
+    self.currentEventInfo = nil
+    if self.frame then
+        self.frame.MapButton:Hide()
+        self.frame:Hide()
     end
 end
 
