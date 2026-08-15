@@ -139,36 +139,41 @@ function UI:Create()
     end)
     frame.CloseButton = closeButton
 
-    local glow = frame:CreateTexture(nil, "OVERLAY")
+    local glowFrame = CreateFrame("Frame", nil, frame)
+    glowFrame:SetFrameLevel(math.max(0, frame:GetFrameLevel()))
+    glowFrame:SetPoint("TOPLEFT", frame, "TOPLEFT", -8, 8)
+    glowFrame:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 8, -8)
+    glowFrame:EnableMouse(false)
+    local glow = glowFrame:CreateTexture(nil, "OVERLAY")
     glow:SetTexture("Interface\\Buttons\\UI-ActionButton-Border")
     glow:SetBlendMode("ADD")
     glow:SetVertexColor(0.35, 0.75, 1, 1)
-    glow:SetPoint("TOPLEFT", frame, "TOPLEFT", -8, 8)
-    glow:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 8, -8)
-    glow:SetAlpha(0)
+    glow:SetAllPoints()
+    glowFrame:SetAlpha(0)
     frame.Glow = glow
+    frame.GlowFrame = glowFrame
 
     local fadeIn = frame:CreateAnimationGroup()
     fadeIn:SetToFinalAlpha(true)
     local fadeInAlpha = fadeIn:CreateAnimation("Alpha")
     fadeInAlpha:SetFromAlpha(0)
     fadeInAlpha:SetToAlpha(1)
-    fadeInAlpha:SetDuration(0.2)
+    fadeInAlpha:SetDuration(0.35)
     fadeInAlpha:SetSmoothing("OUT")
     frame.FadeIn = fadeIn
 
-    local glowIn = frame:CreateAnimationGroup()
+    local glowIn = glowFrame:CreateAnimationGroup()
     glowIn:SetToFinalAlpha(true)
     local glowAlpha = glowIn:CreateAnimation("Alpha")
     glowAlpha:SetFromAlpha(0)
     glowAlpha:SetToAlpha(0.85)
-    glowAlpha:SetDuration(0.12)
+    glowAlpha:SetDuration(0.25)
     glowAlpha:SetSmoothing("OUT")
     local glowFade = glowIn:CreateAnimation("Alpha")
     glowFade:SetFromAlpha(0.85)
     glowFade:SetToAlpha(0)
-    glowFade:SetDuration(0.55)
-    glowFade:SetStartDelay(0.12)
+    glowFade:SetDuration(0.9)
+    glowFade:SetStartDelay(0.25)
     glowFade:SetSmoothing("OUT")
     frame.GlowIn = glowIn
 
@@ -177,14 +182,14 @@ function UI:Create()
     local fadeOutAlpha = fadeOut:CreateAnimation("Alpha")
     fadeOutAlpha:SetFromAlpha(1)
     fadeOutAlpha:SetToAlpha(0)
-    fadeOutAlpha:SetDuration(0.2)
+    fadeOutAlpha:SetDuration(0.4)
     fadeOutAlpha:SetSmoothing("IN")
     frame.FadeOut = fadeOut
     fadeOut:SetScript("OnFinished", function()
         if not alertActive and not positioning then
             frame:Hide()
             frame:SetAlpha(1)
-            glow:SetAlpha(0)
+            glowFrame:SetAlpha(0)
         end
     end)
 
@@ -227,7 +232,7 @@ function UI:PlayOpenAnimation()
     if not self.frame then return end
     if not self.frame.FadeIn or not self.frame.GlowIn or not self.frame.FadeOut then
         self.frame:SetAlpha(1)
-        self.frame.Glow:SetAlpha(0)
+        self.frame.GlowFrame:SetAlpha(0)
         self.frame:Show()
         return
     end
@@ -235,7 +240,7 @@ function UI:PlayOpenAnimation()
     self.frame.FadeIn:Stop()
     self.frame.GlowIn:Stop()
     self.frame:SetAlpha(0)
-    self.frame.Glow:SetAlpha(0)
+    self.frame.GlowFrame:SetAlpha(0)
     self.frame:Show()
     self.frame.FadeIn:Play()
     self.frame.GlowIn:Play()
@@ -246,7 +251,7 @@ function UI:PlayCloseAnimation()
     if not self.frame.FadeIn or not self.frame.GlowIn or not self.frame.FadeOut then
         self.frame:Hide()
         self.frame:SetAlpha(1)
-        self.frame.Glow:SetAlpha(0)
+        self.frame.GlowFrame:SetAlpha(0)
         return
     end
     self.frame.FadeIn:Stop()
