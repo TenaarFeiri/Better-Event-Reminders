@@ -1,3 +1,8 @@
+# 0.2.1
+
+### Bug Fix
+- Fixed unnecessary allocation during combat, causing memory churn.
+
 # 0.2.0
 
 ### New Features
