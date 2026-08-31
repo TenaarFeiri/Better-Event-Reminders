@@ -5,7 +5,7 @@ $RootDir = Split-Path -Parent $PSScriptRoot
 $AddonName = "BetterEventReminders"
 $TocFile = Join-Path $RootDir "$AddonName.toc"
 $ReleaseDir = Join-Path $RootDir ".release"
-$StageDir = Join-Path $ReleaseDir "stage" $AddonName
+$StageDir = Join-Path -Path (Join-Path $ReleaseDir "stage") -ChildPath $AddonName
 
 $versionMatch = Get-Content $TocFile | Select-String -Pattern '^## Version:\s*(.*)$' | Select-Object -First 1
 if (-not $versionMatch) {
