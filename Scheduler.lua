@@ -54,11 +54,12 @@ local function HasPendingStarts(states)
     return false
 end
 
-local function UpdateEventSnapshot(snapshot, eventInfo)
+local function UpdateEventSnapshot(snapshot, eventInfo, coords)
     snapshot = snapshot or {}
     snapshot.eventKey = eventInfo.eventKey
     snapshot.eventID = eventInfo.eventID
     snapshot.areaPoiID = eventInfo.areaPoiID
+    snapshot.coords = coords -- hardcoded coordinates
     snapshot.startTime = eventInfo.startTime
     snapshot.endTime = eventInfo.endTime
     snapshot.duration = eventInfo.duration
@@ -122,7 +123,8 @@ function Scheduler:Refresh()
                 self.reminderStates[eventKey] = state
             end
             state.reminderSeen = true
-            state.eventInfo = UpdateEventSnapshot(state.eventInfo, eventInfo)
+            state.coords = ns.Hardcoded.GetCoordinatesForEvent(eventInfo) -- coords or nil
+            state.eventInfo = UpdateEventSnapshot(state.eventInfo, eventInfo, state.coords)
             state.startTime = eventInfo.startTime
             state.endTime = eventInfo.endTime
             state.areaPoiID = eventInfo.areaPoiID
@@ -142,8 +144,7 @@ function Scheduler:Refresh()
             if timeToEvent <= 0 then
                 if not state.started then
                     state.started = true
-                    local alertInfo = eventInfo.hasReminder and eventInfo or state.eventInfo or eventInfo
-                    UI:ShowAlert(alertInfo, "started", 0)
+                    UI:ShowAlert(state.eventInfo or eventInfo, "started", 0)
                 end
             elseif timeToEvent <= warningSeconds then
                 if timeToEvent > deadSeconds and not state.warning then
@@ -152,7 +153,7 @@ function Scheduler:Refresh()
                     if warningSeconds - timeToEvent <= deadSeconds then
                         warningAt = warningSeconds
                     end
-                    UI:ShowAlert(eventInfo, "warning", warningAt)
+                    UI:ShowAlert(state.eventInfo, "warning", warningAt)
                 end
                 if timeToEvent < nextWait then
                     nextWait = timeToEvent

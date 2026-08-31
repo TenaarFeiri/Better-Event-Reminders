@@ -544,6 +544,32 @@ local function TrySuperTrackEvent(eventInfo, mapID)
 end
 
 local function TrySetEventWaypoint(eventInfo)
+    local fallbackMapID = nil
+    local coords = eventInfo and eventInfo.coords
+    if coords and coords.mapID and coords.x and coords.y then
+        fallbackMapID = coords.mapID
+        if C_Map.SetUserWaypoint and C_SuperTrack.SetSuperTrackedUserWaypoint then
+            -- This should always exist, but we can fall back to normal behaviour should
+            -- that change.
+
+            local point = UiMapPoint.CreateFromVector2D(coords.mapID, coords.x, coords.y)
+            local ok, wasSet = pcall(C_Map.SetUserWaypoint, point)
+            if ok and wasSet then
+                C_SuperTrack.SetSuperTrackedUserWaypoint(true)
+                OpenMapToUserWaypoint()
+                return true, coords.mapID
+            elseif ok and not wasSet then
+                -- SetUserWaypoint ran but returned false, so use fallback areaPoiID path
+                -- in other words, this is just here to break out of the conditional and allow
+                -- fallthrough to fallback
+            elseif not ok and type(wasSet) == "string" then
+                ns.Print("Failed to set a hardcoded waypoint: " .. wasSet)
+                return false, coords.mapID
+            end
+        end
+    end
+
+    ---- If no hardcoded coords, continue as normal.
     local areaPoiID = eventInfo and eventInfo.areaPoiID
     if not areaPoiID or areaPoiID == 0 then
         return false, nil
@@ -581,12 +607,18 @@ local function TrySetEventWaypoint(eventInfo)
         end
     end
 
-    return false, mapID
+    return false, fallbackMapID or mapID
+end
+
+local function HasEventLocation(eventInfo)
+    if not eventInfo then return false end
+    return (eventInfo.areaPoiID and eventInfo.areaPoiID ~= 0)
+        or (eventInfo.coords and eventInfo.coords.mapID)
 end
 
 function UI:OpenEventMap()
     local eventInfo = self.currentEventInfo
-    if not eventInfo or not eventInfo.areaPoiID or eventInfo.areaPoiID == 0 then
+    if not HasEventLocation(eventInfo) then
         ns.Print("No event location is available for this alert.")
         return
     end
@@ -635,7 +667,9 @@ function UI:ShowAlert(eventInfo, alertType, seconds, force)
     local serial = alertSerial
     local frame = self.frame
     self.currentEventInfo = eventInfo
-    frame.MapButton:SetShown(eventInfo.areaPoiID ~= nil and eventInfo.areaPoiID ~= 0)
+    local hasMap = (eventInfo.areaPoiID and eventInfo.areaPoiID ~= 0)
+        or (eventInfo.coords and eventInfo.coords.mapID)
+    frame.MapButton:SetShown(hasMap)
 
     frame.Title:SetText(GetEventName(eventInfo))
     if alertType == "warning" then
