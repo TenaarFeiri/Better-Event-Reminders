@@ -24,8 +24,29 @@ Copy-Item -Path (Join-Path $RootDir "*.lua") -Destination $StageDir
 Copy-Item -Path $TocFile -Destination $StageDir
 Copy-Item -Path (Join-Path $RootDir "LICENSE") -Destination $StageDir
 
-$StageParent = Join-Path $ReleaseDir "stage"
-Compress-Archive -Path (Join-Path $StageParent $AddonName) -DestinationPath $Output -CompressionLevel Optimal -Force
+Add-Type -AssemblyName System.IO.Compression
+Add-Type -AssemblyName System.IO.Compression.FileSystem | Out-Null
+
+$archive = [System.IO.Compression.ZipFile]::Open($Output, [System.IO.Compression.ZipArchiveMode]::Create)
+try {
+    foreach ($file in Get-ChildItem -Path $StageDir -Recurse -File) {
+        $relativePath = $file.FullName.Substring($StageDir.Length + 1).Replace('\', '/')
+        $zipPath = "$AddonName/$relativePath"
+        $entry = $archive.CreateEntry($zipPath)
+        $entry.LastWriteTime = $file.LastWriteTime
+
+        $sourceStream = [System.IO.File]::OpenRead($file.FullName)
+        $targetStream = $entry.Open()
+        try {
+            $sourceStream.CopyTo($targetStream)
+        } finally {
+            $targetStream.Dispose()
+            $sourceStream.Dispose()
+        }
+    }
+} finally {
+    $archive.Dispose()
+}
 
 $archiveInfo = Get-Item $Output
 
