@@ -128,6 +128,13 @@ Config.Categories = {
         description = "Prevent alerts from interrupting combat and challenging content.",
         options = SUPPRESSION_OPTIONS,
     },
+    {
+        id = "contribution",
+        label = "Contribute!",
+        description = "Want to contribute to BER? Gather coordinates for events that miss proper waypoints and submit them" ..
+            " in the CF comments, or as issues or pull requests on the project's GitHub!",
+        options = {}
+    },
 }
 
 local OPTION_BY_KEY = {}
