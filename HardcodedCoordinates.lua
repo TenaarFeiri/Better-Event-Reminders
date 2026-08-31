@@ -37,10 +37,8 @@ local coordinateMap = {
 local function GetEventName(eventInfo)
     local poiInfo = C_AreaPoiInfo.GetAreaPOIInfo(nil, eventInfo.areaPoiID)
     if poiInfo then
-        print("Hardcoded GetEventName returned " .. poiInfo.name)
         return poiInfo.name
     end
-    print("Hardcoded GetEventName returned nil")
     return nil
 end
 
