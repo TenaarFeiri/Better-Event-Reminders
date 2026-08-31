@@ -619,6 +619,10 @@ local function HasEventLocation(eventInfo)
 end
 
 function UI:OpenEventMap()
+    if InCombatLockdown() then
+        ns.Print("Cannot open map while in combat.")
+        return
+    end
     local eventInfo = self.currentEventInfo
     if not HasEventLocation(eventInfo) then
         ns.Print("No event location is available for this alert.")
