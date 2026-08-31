@@ -193,13 +193,16 @@ local function GetNextTestEvent()
                 if not nextEvent or eventInfo.startTime < nextEvent.startTime then
                     nextEvent = eventInfo
                 end
-                if not nextResolvableEvent and ResolveMapForAreaPoi(eventInfo.areaPoiID, false) then
+                if not nextResolvableEvent
+                    and (ResolveMapForAreaPoi(eventInfo.areaPoiID, false)
+                        or (eventInfo.coords and eventInfo.coords.mapID)) then
                     nextResolvableEvent = eventInfo
                 end
             end
         end
     end
-    return activeEvent or nextResolvableEvent or nextEvent or { areaPoiID = 0 }
+    return nextResolvableEvent or nextEvent or { areaPoiID = 0 }
+    --activeEvent or nextResolvableEvent or nextEvent or { areaPoiID = 0 }
 end
 
 function UI:Create()
@@ -548,11 +551,11 @@ local function TrySetEventWaypoint(eventInfo)
     local coords = eventInfo and eventInfo.coords
     if coords and coords.mapID and coords.x and coords.y then
         fallbackMapID = coords.mapID
+        print("FallbackmapID set")
         if C_Map.SetUserWaypoint and C_SuperTrack.SetSuperTrackedUserWaypoint then
             -- This should always exist, but we can fall back to normal behaviour should
             -- that change.
-
-            local point = UiMapPoint.CreateFromVector2D(coords.mapID, coords.x, coords.y)
+            local point = UiMapPoint.CreateFromCoordinates(coords.mapID, coords.x, coords.y)
             local ok, wasSet = pcall(C_Map.SetUserWaypoint, point)
             if ok and wasSet then
                 C_SuperTrack.SetSuperTrackedUserWaypoint(true)
@@ -572,7 +575,7 @@ local function TrySetEventWaypoint(eventInfo)
     ---- If no hardcoded coords, continue as normal.
     local areaPoiID = eventInfo and eventInfo.areaPoiID
     if not areaPoiID or areaPoiID == 0 then
-        return false, nil
+        return false, fallbackMapID
     end
 
     local mapID = ResolveMapForAreaPoi(areaPoiID)
@@ -696,11 +699,11 @@ end
 
 function UI:ShowTestAlert()
     local eventInfo = GetNextTestEvent()
-    if not eventInfo or eventInfo.areaPoiID == 0 then
+    eventInfo.coords = ns.Hardcoded.GetCoordinatesForEvent(eventInfo)
+    if not HasEventLocation(eventInfo) then
         ns.Print("No scheduled event is available to test.")
         return
     end
-
     local isActive = eventInfo.startTime and eventInfo.startTime <= time()
     local alertType = isActive and "started" or "warning"
     local seconds = isActive and 0 or Config:GetWarningSeconds()
