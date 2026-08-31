@@ -18,6 +18,9 @@ local ns = {
             }
         end,
     },
+    Hardcoded = {
+        GetCoordinatesForEvent = function() return nil end,
+    },
 }
 
 Constants = {

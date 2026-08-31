@@ -102,6 +102,60 @@ local function CreatePlainSlider(parent, name)
     return slider
 end
 
+local copyBoxFrame = nil
+
+local function ShowCopyBox(title, text)
+    if not copyBoxFrame then
+        copyBoxFrame = CreateFrame("Frame", nil, UIParent, "BackdropTemplate")
+        copyBoxFrame:SetSize(440, 130)
+        copyBoxFrame:SetPoint("CENTER")
+        copyBoxFrame:SetFrameStrata("FULLSCREEN_DIALOG")
+        copyBoxFrame:SetFrameLevel(100)
+        copyBoxFrame:SetBackdrop({
+            bgFile = "Interface\\Buttons\\WHITE8x8",
+            edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+            edgeSize = 14,
+            insets = { left = 3, right = 3, top = 3, bottom = 3 },
+        })
+        copyBoxFrame:SetBackdropColor(0.06, 0.06, 0.06, 0.98)
+        copyBoxFrame:SetBackdropBorderColor(0.35, 0.75, 1, 1)
+
+        local titleText = copyBoxFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+        titleText:SetPoint("TOP", copyBoxFrame, "TOP", 0, -12)
+        copyBoxFrame.TitleText = titleText
+
+        local editBox = CreateFrame("EditBox", nil, copyBoxFrame)
+        editBox:SetMultiLine(false)
+        editBox:SetAutoFocus(true)
+        editBox:SetFontObject("ChatFontNormal")
+        editBox:SetPoint("TOPLEFT", copyBoxFrame, "TOPLEFT", 16, -44)
+        editBox:SetPoint("BOTTOMRIGHT", copyBoxFrame, "BOTTOMRIGHT", -16, 46)
+        copyBoxFrame.EditBox = editBox
+
+        editBox:SetScript("OnEscapePressed", function(self)
+            copyBoxFrame:Hide()
+        end)
+
+        editBox:SetScript("OnKeyDown", function(self, key)
+            if key == "C" and IsControlKeyDown() then
+                C_Timer.After(0.1, function()
+                    copyBoxFrame:Hide()
+                end)
+            end
+        end)
+
+        local close = CreatePlainButton(copyBoxFrame, 80, 24, "Close")
+        close:SetPoint("BOTTOM", copyBoxFrame, "BOTTOM", 0, 12)
+        close:SetScript("OnClick", function() copyBoxFrame:Hide() end)
+    end
+
+    copyBoxFrame.TitleText:SetText(title)
+    copyBoxFrame.EditBox:SetText(text)
+    copyBoxFrame.EditBox:HighlightText()
+    copyBoxFrame:Show()
+    copyBoxFrame:Raise()
+end
+
 function Settings:Track(control)
     local controls = self.buildingControls or self.controls
     controls[#controls + 1] = control
@@ -151,7 +205,7 @@ end
 
 function Settings:AddCategoryHeader(category)
     self:AddLabel(category.label, 12, -18, 440, "GameFontNormalLarge")
-    local description = self:AddLabel(category.description, 12, -48, 440, "GameFontHighlightSmall")
+    local description = self:AddLabel(category.description, 12, -48, 440, "GameFontHighlight")
     description:SetTextColor(0.7, 0.7, 0.7, 1)
 end
 
@@ -319,6 +373,28 @@ function Settings:BuildCategory(categoryId)
     self:AddCategoryHeader(category)
 
     local y = -82
+    if category.id == "contribution" then
+        y = -120
+
+        local links = {
+            { label = "Discord", url = "https://discord.gg/eJYBYpZa7W" },
+            { label = "GitHub", url = "https://github.com/TenaarFeiri/Better-Event-Reminders" },
+            { label = "CurseForge", url = "https://www.curseforge.com/wow/addons/better-event-reminders" },
+        }
+
+        local x = 12
+        for _, link in ipairs(links) do
+            local button = CreatePlainButton(self.content, 120, 30, link.label)
+            button:SetPoint("TOPLEFT", self.content, "TOPLEFT", x, y + 20)
+            button:SetScript("OnClick", function()
+                ShowCopyBox(link.label, link.url)
+            end)
+            self:Track(button)
+            x = x + 130
+        end
+        y = y - 60
+    end
+
     for _, option in ipairs(category.options) do
         if option.kind == "boolean" then
             y = self:AddBoolean(option, y)
