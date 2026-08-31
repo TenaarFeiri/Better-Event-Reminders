@@ -1,3 +1,9 @@
+# 0.3.0
+
+### New Features
+- Hardcoded waypoints can now direct you to event locations earlier.
+- - Hardcoded waypoints are added as they are needed. If you would like to contribute, please make an issue or a PR on GitHub :)
+
 # 0.2.1
 
 ### Bug Fix
