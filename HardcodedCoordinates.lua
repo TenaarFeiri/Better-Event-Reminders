@@ -4,27 +4,27 @@ local Hardcoded = ns.Hardcoded
 
 local coordinateMap = {
     -- The Coiled Isles
-    ["Siege at the Whispering Marsh"] = {
+    ["Curse Surge: Siege at the Whispering Marsh"] = {
         mapID = 2512,
         coordX = 67.1,
         coordY = 77.5,
     },
-    ["The Malformed Leviathan"] = {
+    ["Curse Surge: The Malformed Leviathan"] = {
         mapID = 2512,
         coordX = 46.9,
         coordY = 62.2,
     },
-    ["The Broodmother's Nest"] = {
+    ["Curse Surge: The Broodmother's Nest"] = {
         mapID = 2512,
         coordX = 45.7,
         coordY = 29.6,
     },
-    ["The Looming Mutagenitor"] = {
+    ["Curse Surge: The Looming Mutagenitor"] = {
         mapID = 2512,
         coordX = 26.4,
         coordY = 64.9,
     },
-    ["Mlurkkr Massacre"] = {
+    ["Curse Surge: Mlurkkr Massacre"] = {
         mapID = 2512,
         coordX = 70.5,
         coordY = 32.7,
@@ -37,8 +37,10 @@ local coordinateMap = {
 local function GetEventName(eventInfo)
     local poiInfo = C_AreaPoiInfo.GetAreaPOIInfo(nil, eventInfo.areaPoiID)
     if poiInfo then
+        print("Hardcoded GetEventName returned " .. poiInfo.name)
         return poiInfo.name
     end
+    print("Hardcoded GetEventName returned nil")
     return nil
 end
 
