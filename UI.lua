@@ -551,7 +551,6 @@ local function TrySetEventWaypoint(eventInfo)
     local coords = eventInfo and eventInfo.coords
     if coords and coords.mapID and coords.x and coords.y then
         fallbackMapID = coords.mapID
-        print("FallbackmapID set")
         if C_Map.SetUserWaypoint and C_SuperTrack.SetSuperTrackedUserWaypoint then
             -- This should always exist, but we can fall back to normal behaviour should
             -- that change.
