@@ -26,20 +26,16 @@ function Commands:ToggleSettings()
 end
 
 function Commands:PrintMemory()
-    if UpdateAddOnMemoryUsage then
-        UpdateAddOnMemoryUsage()
-    end
+    UpdateAddOnMemoryUsage()
 
-    local addonMemory = GetAddOnMemoryUsage and GetAddOnMemoryUsage(ns.Name) or 0
+    local addonMemory = GetAddOnMemoryUsage(ns.Name)
     local luaHeap = collectgarbage("count")
     local cachedControls = 0
-    for _, category in pairs(Settings.categoryControls or {}) do
+    for _, category in pairs(Settings.categoryControls) do
         cachedControls = cachedControls + #category.controls
     end
-    local trackedReminders = ns.Scheduler and ns.Scheduler.GetTrackedReminderCount
-        and ns.Scheduler:GetTrackedReminderCount() or 0
-    local refreshCount = ns.Scheduler and ns.Scheduler.GetRefreshCount
-        and ns.Scheduler:GetRefreshCount() or 0
+    local trackedReminders = ns.Scheduler:GetTrackedReminderCount()
+    local refreshCount = ns.Scheduler:GetRefreshCount()
 
     ns.Print(string.format(
         "Memory: %.1f KB addon, %.1f KB Lua heap, %d cached controls, %d tracked reminders, %d refreshes.",

@@ -208,10 +208,7 @@ function Config:GetDB()
 end
 
 function Config:GetWarningSeconds()
-    if Constants and Constants.EventScheduler and Constants.EventScheduler.SCHEDULED_EVENT_REMINDER_WARNING_SECONDS then
-        return Constants.EventScheduler.SCHEDULED_EVENT_REMINDER_WARNING_SECONDS
-    end
-    return 300
+    return Constants.EventScheduler.SCHEDULED_EVENT_REMINDER_WARNING_SECONDS
 end
 
 function Config:Get(key)

@@ -80,7 +80,7 @@ function Scheduler:GetTrackedReminderCount()
 end
 
 function Scheduler:Refresh()
-    if not self.ready or not C_EventScheduler then return end
+    if not self.ready then return end
 
     self.refreshCount = self.refreshCount + 1
     CancelTimer(self, "refreshTimer")
@@ -106,10 +106,7 @@ function Scheduler:Refresh()
     local activeReminders = self.activeReminders
     wipe(activeReminders)
     local warningSeconds = Config:GetWarningSeconds()
-    local deadSeconds = 10
-    if Constants and Constants.EventScheduler and Constants.EventScheduler.SCHEDULED_EVENT_REMINDER_DEAD_SECONDS then
-        deadSeconds = Constants.EventScheduler.SCHEDULED_EVENT_REMINDER_DEAD_SECONDS
-    end
+    local deadSeconds = Constants.EventScheduler.SCHEDULED_EVENT_REMINDER_DEAD_SECONDS
 
     for _, eventInfo in ipairs(scheduledEvents) do
         local eventKey = eventInfo.eventKey

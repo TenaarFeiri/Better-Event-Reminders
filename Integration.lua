@@ -25,10 +25,8 @@ local function CreatePlainButton(parent, width, height, text)
 end
 
 function Integration:OpenBERSettings()
-    if SettingsPanel and SettingsPanel:IsShown() then
+    if SettingsPanel:IsShown() then
         SettingsPanel:Hide()
-    elseif InterfaceOptionsFrame and InterfaceOptionsFrame:IsShown() then
-        InterfaceOptionsFrame:Hide()
     end
 
     C_Timer.After(0, function()
@@ -39,71 +37,47 @@ end
 function Integration:RegisterSettingsCategory()
     if self.settingsRegistered then return true end
 
-    local blizzardSettings = _G.Settings
-    if blizzardSettings and blizzardSettings.RegisterCanvasLayoutCategory then
-        local panel = CreateFrame("Frame")
-        panel:SetSize(600, 300)
+    local panel = CreateFrame("Frame")
+    panel:SetSize(600, 300)
 
-        local title = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-        title:SetPoint("TOPLEFT", panel, "TOPLEFT", 24, -24)
-        title:SetText("Better Event Reminders")
-        title:SetTextColor(1, 0.82, 0, 1)
+    local title = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    title:SetPoint("TOPLEFT", panel, "TOPLEFT", 24, -24)
+    title:SetText("Better Event Reminders")
+    title:SetTextColor(1, 0.82, 0, 1)
 
-        local description = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-        description:SetPoint("TOPLEFT", panel, "TOPLEFT", 24, -58)
-        description:SetWidth(540)
-        description:SetJustifyH("LEFT")
-        description:SetText("Open Better Event Reminders to configure alerts, suppression rules, and the minimap launcher.")
+    local description = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    description:SetPoint("TOPLEFT", panel, "TOPLEFT", 24, -58)
+    description:SetWidth(540)
+    description:SetJustifyH("LEFT")
+    description:SetText("Open Better Event Reminders to configure alerts, suppression rules, and the minimap launcher.")
 
-        local button = CreatePlainButton(panel, 240, 28, "Open Better Event Reminders")
-        button:SetPoint("TOPLEFT", panel, "TOPLEFT", 24, -104)
-        button:SetScript("OnClick", function()
-            self:OpenBERSettings()
-        end)
+    local button = CreatePlainButton(panel, 240, 28, "Open Better Event Reminders")
+    button:SetPoint("TOPLEFT", panel, "TOPLEFT", 24, -104)
+    button:SetScript("OnClick", function()
+        self:OpenBERSettings()
+    end)
 
-        local category = blizzardSettings.RegisterCanvasLayoutCategory(panel, ns.Name)
-        blizzardSettings.RegisterAddOnCategory(category)
-        self.settingsPanel = panel
-        self.settingsCategory = category
-        self.settingsRegistered = true
-        return true
-    end
-
-    if InterfaceOptions_AddCategory then
-        local panel = CreateFrame("Frame")
-        panel.name = ns.Name
-        local button = CreatePlainButton(panel, 240, 28, "Open Better Event Reminders")
-        button:SetPoint("TOPLEFT", panel, "TOPLEFT", 24, -24)
-        button:SetScript("OnClick", function()
-            self:OpenBERSettings()
-        end)
-        InterfaceOptions_AddCategory(panel)
-        self.settingsPanel = panel
-        self.settingsRegistered = true
-        return true
-    end
-
-    return false
+    local category = Settings.RegisterCanvasLayoutCategory(panel, ns.Name)
+    Settings.RegisterAddOnCategory(category)
+    self.settingsPanel = panel
+    self.settingsCategory = category
+    self.settingsRegistered = true
+    return true
 end
 
 function Integration:PositionMinimapButton()
-    if not self.minimapButton or not Minimap then return end
-
     local config = Config:Get("minimap")
     local angle = math.rad(config.angle or 220)
-    local width = Minimap:GetWidth() or 140
+    local width = Minimap:GetWidth()
     local radius = width / 2 + 10
     self.minimapButton:ClearAllPoints()
     self.minimapButton:SetPoint("CENTER", Minimap, "CENTER", math.cos(angle) * radius, math.sin(angle) * radius)
 end
 
 function Integration:UpdateMinimapButtonAngle()
-    if not Minimap or not self.minimapButton then return end
-
     local centerX, centerY = Minimap:GetCenter()
     local cursorX, cursorY = GetCursorPosition()
     local scale = Minimap:GetEffectiveScale()
-    if not centerX or not centerY or not scale then return end
 
     cursorX = cursorX / scale
     cursorY = cursorY / scale
@@ -113,7 +87,7 @@ function Integration:UpdateMinimapButtonAngle()
 end
 
 function Integration:CreateFallbackMinimapButton()
-    if self.minimapButton or not Minimap then return end
+    if self.minimapButton then return end
 
     local button = CreateFrame("Button", "BetterEventRemindersMinimapButton", Minimap)
     button:SetSize(31, 31)
@@ -130,11 +104,7 @@ function Integration:CreateFallbackMinimapButton()
     local icon = button:CreateTexture(nil, "ARTWORK")
     icon:SetSize(20, 20)
     icon:SetPoint("TOPLEFT", button, "TOPLEFT", 7, -5)
-    if icon.SetAtlas then
-        icon:SetAtlas("event-scheduler-reminder-icon")
-    else
-        icon:SetTexture("Interface\\Icons\\INV_Misc_Note_06")
-    end
+    icon:SetAtlas("event-scheduler-reminder-icon")
 
     local border = button:CreateTexture(nil, "OVERLAY")
     border:SetSize(53, 53)
@@ -167,12 +137,10 @@ function Integration:CreateFallbackMinimapButton()
 end
 
 function Integration:ApplyDBIconAtlas()
-    if not self.dbIcon or not self.dbIcon.GetMinimapButton then return end
+    if not self.dbIcon then return end
 
     local button = self.dbIcon:GetMinimapButton(ns.Name)
-    if button and button.icon and button.icon.SetAtlas
-        and C_Texture and C_Texture.GetAtlasInfo
-        and C_Texture.GetAtlasInfo("event-scheduler-reminder-icon") then
+    if button and button.icon then
         button.icon:SetAtlas("event-scheduler-reminder-icon")
     end
 end
@@ -205,14 +173,10 @@ function Integration:CreateMinimapLauncher()
         return true
     end
 
-    if Minimap then
-        self:CreateFallbackMinimapButton()
-        self.minimapRegistered = self.minimapButton ~= nil
-        self:ApplyMinimapVisibility()
-        return self.minimapRegistered
-    end
-
-    return false
+    self:CreateFallbackMinimapButton()
+    self.minimapRegistered = true
+    self:ApplyMinimapVisibility()
+    return true
 end
 
 function Integration:ApplyMinimapVisibility()

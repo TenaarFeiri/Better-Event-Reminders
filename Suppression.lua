@@ -5,21 +5,19 @@ local Suppression = {}
 ns.Suppression = Suppression
 
 local function IsCombatLockdownActive()
-    return InCombatLockdown and InCombatLockdown() or false
+    return InCombatLockdown()
 end
 
 local function IsChallengeModeActive()
-    return C_ChallengeMode
-        and C_ChallengeMode.IsChallengeModeActive
-        and C_ChallengeMode.IsChallengeModeActive() or false
+    return C_ChallengeMode.IsChallengeModeActive()
 end
 
 local function IsRegularCombatActive()
-    return UnitAffectingCombat and UnitAffectingCombat("player") or false
+    return UnitAffectingCombat("player")
 end
 
 local function IsPlayerInInstance()
-    return IsInInstance and select(1, IsInInstance()) or false
+    return select(1, IsInInstance())
 end
 
 function Suppression:GetReason()

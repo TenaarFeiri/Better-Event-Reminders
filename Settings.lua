@@ -19,7 +19,7 @@ local CONTENT_TOP = 58
 local CONTENT_BOTTOM = 44
 
 local function AddTooltip(region, text)
-    if not text or text == "" or not region or not region.SetScript then return end
+    if not text or text == "" then return end
     region:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
         GameTooltip:SetText(text)
@@ -523,7 +523,6 @@ function Settings:Create()
     self:SelectCategory(self.activeCategory)
     frame:Hide()
 
-    UISpecialFrames = UISpecialFrames or {}
     table.insert(UISpecialFrames, "BetterEventRemindersSettingsFrame")
 end
 
