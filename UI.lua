@@ -9,9 +9,6 @@ local alertSerial = 0
 local alertActive = false
 local positioning = false
 local zoneMapCache = {}
-local function SecureCall(func, ...)
-    return securecallfunction(pcall, func, ...)
-end
 
 local function FormatDuration(seconds)
     seconds = math.max(0, math.floor(seconds + 0.5))
@@ -492,17 +489,13 @@ local function TrySuperTrackEvent(eventInfo, mapID)
         return false
     end
 
-    local ok = SecureCall(
+    securecallfunction(
         C_SuperTrack.SetSuperTrackedMapPin,
         Enum.SuperTrackingMapPinType.AreaPOI,
         eventInfo.areaPoiID
     )
-    if not ok then
-        ns.Print("Failed to set a waypoint in TrySuperTrackEvent.")
-        return false
-    end
 
-    SecureCall(OpenMapToEventPoi, eventInfo.areaPoiID)
+    OpenMapToEventPoi(eventInfo.areaPoiID)
     return true
 end
 
@@ -512,17 +505,13 @@ local function TrySetEventWaypoint(eventInfo)
     if coords and coords.mapID and coords.x and coords.y then
         fallbackMapID = coords.mapID
         local point = UiMapPoint.CreateFromCoordinates(coords.mapID, coords.x, coords.y)
-        local ok, wasSet = SecureCall(C_Map.SetUserWaypoint, point)
-        if ok and wasSet then
-            SecureCall(C_SuperTrack.SetSuperTrackedUserWaypoint, true)
-            SecureCall(OpenMapToUserWaypoint)
+        local wasSet = securecallfunction(C_Map.SetUserWaypoint, point)
+        if wasSet then
+            securecallfunction(C_SuperTrack.SetSuperTrackedUserWaypoint, true)
+            OpenMapToUserWaypoint()
             return true, coords.mapID
-        elseif not ok and type(wasSet) == "string" then
-            ns.Print("Failed to set a hardcoded waypoint: " .. wasSet)
-            return false, coords.mapID
         end
-        -- SetUserWaypoint ran but returned false, so fall through to the
-        -- areaPoiID path below.
+        -- SetUserWaypoint returned false, fall through to the areaPoiID path.
     end
 
     ---- If no hardcoded coords, continue as normal.
@@ -543,10 +532,10 @@ local function TrySetEventWaypoint(eventInfo)
     local position = GetUsablePoiPosition(poiInfo)
     if mapID and position then
         local point = UiMapPoint.CreateFromVector2D(mapID, position)
-        local ok, wasSet = SecureCall(C_Map.SetUserWaypoint, point)
-        if ok and wasSet then
-            SecureCall(C_SuperTrack.SetSuperTrackedUserWaypoint, true)
-            SecureCall(OpenMapToUserWaypoint)
+        local wasSet = securecallfunction(C_Map.SetUserWaypoint, point)
+        if wasSet then
+            securecallfunction(C_SuperTrack.SetSuperTrackedUserWaypoint, true)
+            OpenMapToUserWaypoint()
             return true, mapID
         end
     end
@@ -579,14 +568,10 @@ function UI:OpenEventMap()
         return
     end
 
-    if SecureCall(OpenWorldMap, mapID) then
-        if mapID then
-            EventRegistry:TriggerEvent("PingAreaPOIEvent", eventInfo.areaPoiID)
-        end
-        return
+    OpenWorldMap(mapID)
+    if mapID then
+        EventRegistry:TriggerEvent("PingAreaPOIEvent", eventInfo.areaPoiID)
     end
-
-    ns.Print("Unable to open a map for this event.")
 end
 
 function UI:PlayAlertSound(force)
