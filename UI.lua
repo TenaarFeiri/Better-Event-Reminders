@@ -26,12 +26,12 @@ local function FormatDuration(seconds)
 end
 
 local function GetEventName(eventInfo)
-    local poiInfo = C_AreaPoiInfo.GetAreaPOIInfo(nil, eventInfo.areaPoiID)
+    local poiInfo = securecallfunction(C_AreaPoiInfo.GetAreaPOIInfo, nil, eventInfo.areaPoiID)
     if poiInfo and poiInfo.name and poiInfo.name ~= "" then
         return poiInfo.name
     end
 
-    local zoneName = C_EventScheduler.GetEventZoneName(eventInfo.areaPoiID)
+    local zoneName = securecallfunction(C_EventScheduler.GetEventZoneName, eventInfo.areaPoiID)
     if zoneName and zoneName ~= "" then
         return zoneName
     end
@@ -47,12 +47,12 @@ local function ResolveMapByName(mapName)
         return zoneMapCache[mapName]
     end
 
-    local currentMapID = C_Map.GetBestMapForUnit("player")
+    local currentMapID = securecallfunction(C_Map.GetBestMapForUnit, "player")
     local roots = {}
     local seen = {}
     while currentMapID and not seen[currentMapID] do
         seen[currentMapID] = true
-        local mapInfo = C_Map.GetMapInfo(currentMapID)
+        local mapInfo = securecallfunction(C_Map.GetMapInfo, currentMapID)
         if not mapInfo then break end
         if not mapInfo.parentMapID or mapInfo.parentMapID == 0 then
             roots[#roots + 1] = currentMapID
@@ -62,13 +62,13 @@ local function ResolveMapByName(mapName)
     end
 
     for _, rootMapID in ipairs(roots) do
-        local mapInfo = C_Map.GetMapInfo(rootMapID)
+        local mapInfo = securecallfunction(C_Map.GetMapInfo, rootMapID)
         if mapInfo and mapInfo.name == mapName then
             zoneMapCache[mapName] = rootMapID
             return rootMapID
         end
 
-        local children = C_Map.GetMapChildrenInfo(rootMapID, nil, true)
+        local children = securecallfunction(C_Map.GetMapChildrenInfo, rootMapID, nil, true)
         if children then
             for _, child in ipairs(children) do
                 if child.name == mapName then
@@ -86,7 +86,7 @@ local function MapContainsAreaPoi(mapID, areaPoiID)
     end
 
     for _, api in ipairs({ C_AreaPoiInfo.GetEventsForMap, C_AreaPoiInfo.GetAreaPOIForMap }) do
-        local areaPoiIDs = api(mapID)
+        local areaPoiIDs = securecallfunction(api, mapID)
         if areaPoiIDs then
             for _, id in ipairs(areaPoiIDs) do
                 if id == areaPoiID then
@@ -106,7 +106,7 @@ local function FindAreaPoiMap(rootMapID, areaPoiID)
         return rootMapID
     end
 
-    local children = C_Map.GetMapChildrenInfo(rootMapID, nil, true)
+    local children = securecallfunction(C_Map.GetMapChildrenInfo, rootMapID, nil, true)
     if children then
         for _, child in ipairs(children) do
             if MapContainsAreaPoi(child.mapID, areaPoiID) then
@@ -121,17 +121,17 @@ local function ResolveMapForAreaPoi(areaPoiID, searchChildren)
         return nil
     end
 
-    local mapID = C_EventScheduler.GetEventUiMapID(areaPoiID)
+    local mapID = securecallfunction(C_EventScheduler.GetEventUiMapID, areaPoiID)
     if mapID then
         return FindAreaPoiMap(mapID, areaPoiID) or mapID
     end
 
-    local poiInfo = C_AreaPoiInfo.GetAreaPOIInfo(nil, areaPoiID)
+    local poiInfo = securecallfunction(C_AreaPoiInfo.GetAreaPOIInfo, nil, areaPoiID)
     if poiInfo and poiInfo.linkedUiMapID then
         return FindAreaPoiMap(poiInfo.linkedUiMapID, areaPoiID) or poiInfo.linkedUiMapID
     end
 
-    local zoneName = C_EventScheduler.GetEventZoneName(areaPoiID)
+    local zoneName = securecallfunction(C_EventScheduler.GetEventZoneName, areaPoiID)
     if zoneName then
         local namedMapID = ResolveMapByName(zoneName)
         if namedMapID then
@@ -140,7 +140,7 @@ local function ResolveMapForAreaPoi(areaPoiID, searchChildren)
     end
 
     if searchChildren ~= false then
-        local playerMapID = C_Map.GetBestMapForUnit("player")
+        local playerMapID = securecallfunction(C_Map.GetBestMapForUnit, "player")
         local poiMapID = FindAreaPoiMap(playerMapID, areaPoiID)
         if poiMapID then
             return poiMapID
@@ -155,7 +155,7 @@ local function GetNextTestEvent()
     local activeEvent
     local nextEvent
     local nextResolvableEvent
-    local scheduledEvents = C_EventScheduler.GetScheduledEvents()
+    local scheduledEvents = securecallfunction(C_EventScheduler.GetScheduledEvents)
     if scheduledEvents then
         for _, eventInfo in ipairs(scheduledEvents) do
             if not eventInfo.areaPoiID or not eventInfo.startTime then
@@ -495,7 +495,7 @@ local function TrySuperTrackEvent(eventInfo, mapID)
         eventInfo.areaPoiID
     )
 
-    OpenMapToEventPoi(eventInfo.areaPoiID)
+    securecallfunction(OpenMapToEventPoi, eventInfo.areaPoiID)
     return true
 end
 
@@ -508,7 +508,7 @@ local function TrySetEventWaypoint(eventInfo)
         local wasSet = securecallfunction(C_Map.SetUserWaypoint, point)
         if wasSet then
             securecallfunction(C_SuperTrack.SetSuperTrackedUserWaypoint, true)
-            OpenMapToUserWaypoint()
+            securecallfunction(OpenMapToUserWaypoint)
             return true, coords.mapID
         end
         -- SetUserWaypoint returned false, fall through to the areaPoiID path.
@@ -523,10 +523,10 @@ local function TrySetEventWaypoint(eventInfo)
     local mapID = ResolveMapForAreaPoi(areaPoiID)
     local poiInfo
     if mapID then
-        poiInfo = C_AreaPoiInfo.GetAreaPOIInfo(mapID, areaPoiID)
+        poiInfo = securecallfunction(C_AreaPoiInfo.GetAreaPOIInfo, mapID, areaPoiID)
     end
     if not poiInfo then
-        poiInfo = C_AreaPoiInfo.GetAreaPOIInfo(nil, areaPoiID)
+        poiInfo = securecallfunction(C_AreaPoiInfo.GetAreaPOIInfo, nil, areaPoiID)
     end
 
     local position = GetUsablePoiPosition(poiInfo)
@@ -535,7 +535,7 @@ local function TrySetEventWaypoint(eventInfo)
         local wasSet = securecallfunction(C_Map.SetUserWaypoint, point)
         if wasSet then
             securecallfunction(C_SuperTrack.SetSuperTrackedUserWaypoint, true)
-            OpenMapToUserWaypoint()
+            securecallfunction(OpenMapToUserWaypoint)
             return true, mapID
         end
     end
@@ -568,9 +568,9 @@ function UI:OpenEventMap()
         return
     end
 
-    OpenWorldMap(mapID)
+    securecallfunction(OpenWorldMap, mapID)
     if mapID then
-        EventRegistry:TriggerEvent("PingAreaPOIEvent", eventInfo.areaPoiID)
+        securecallfunction(EventRegistry.TriggerEvent, EventRegistry, "PingAreaPOIEvent", eventInfo.areaPoiID)
     end
 end
 
@@ -625,6 +625,10 @@ function UI:ShowAlert(eventInfo, alertType, seconds, force)
 end
 
 function UI:ShowTestAlert()
+    if InCombatLockdown() then
+        ns.Print("Cannot test alerts while in combat.")
+        return
+    end
     local eventInfo = GetNextTestEvent()
     eventInfo.coords = ns.Hardcoded.GetCoordinatesForEvent(eventInfo)
     if not HasEventLocation(eventInfo) then

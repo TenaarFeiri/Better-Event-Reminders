@@ -1,5 +1,6 @@
 local now = 1000
 local hasReminder = true
+local lockdown = false
 local currentEvent
 local alerts = {}
 
@@ -30,6 +31,14 @@ Constants = {
 }
 
 time = function() return now end
+InCombatLockdown = function() return lockdown end
+securecallfunction = function(func, ...) return func(...) end
+CreateFrame = function()
+    return {
+        RegisterEvent = function() end,
+        SetScript = function(self, name, handler) self[name] = handler end,
+    }
+end
 wipe = function(tbl)
     for key in pairs(tbl) do tbl[key] = nil end
 end
@@ -144,5 +153,21 @@ Scheduler:QueueRefresh()
 assertEqual(Scheduler.refreshTimer, queuedRefresh, "refresh coalescing")
 queuedRefresh.callback()
 assertEqual(Scheduler:GetRefreshCount(), refreshCount + 1, "queued refresh execution")
+
+-- Refreshes during combat lockdown are deferred until PLAYER_REGEN_ENABLED,
+-- because touching C_EventScheduler/C_AreaPoiInfo under lockdown taints
+-- Blizzard's protected map pin calls.
+lockdown = true
+local deferredCount = Scheduler:GetRefreshCount()
+Scheduler:Refresh()
+assertEqual(Scheduler:GetRefreshCount(), deferredCount, "lockdown refresh deferral")
+assertEqual(Scheduler.regenRefreshPending, true, "regen pending flag")
+lockdown = false
+Scheduler.regenFrame.OnEvent()
+assertEqual(Scheduler.regenRefreshPending, nil, "regen flag cleared")
+local regenTimer = Scheduler.refreshTimer
+assertEqual(regenTimer ~= nil, true, "regen queued refresh")
+regenTimer.callback()
+assertEqual(Scheduler:GetRefreshCount(), deferredCount + 1, "post-regen refresh")
 
 print("scheduler smoke tests passed")

@@ -35,7 +35,7 @@ local coordinateMap = {
 --- @param eventInfo table
 --- @return string|nil
 local function GetEventName(eventInfo)
-    local poiInfo = C_AreaPoiInfo.GetAreaPOIInfo(nil, eventInfo.areaPoiID)
+    local poiInfo = securecallfunction(C_AreaPoiInfo.GetAreaPOIInfo, nil, eventInfo.areaPoiID)
     if poiInfo then
         return poiInfo.name
     end

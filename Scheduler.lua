@@ -8,6 +8,8 @@ local Scheduler = {
     refreshTimer = nil,
     refreshCount = 0,
     ready = false,
+    regenFrame = nil,
+    regenRefreshPending = false,
     reminderStates = {},
     activeReminders = {},
 }
@@ -43,6 +45,21 @@ function Scheduler:ScheduleRetry()
             self:Refresh()
         end
     end)
+end
+
+function Scheduler:QueueRegenRefresh()
+    self.regenRefreshPending = true
+    if self.regenFrame then return end
+
+    local frame = CreateFrame("Frame")
+    frame:RegisterEvent("PLAYER_REGEN_ENABLED")
+    frame:SetScript("OnEvent", function()
+        if self.regenRefreshPending then
+            self.regenRefreshPending = nil
+            self:QueueRefresh()
+        end
+    end)
+    self.regenFrame = frame
 end
 
 local function HasPendingStarts(states)
@@ -82,20 +99,28 @@ end
 function Scheduler:Refresh()
     if not self.ready then return end
 
+    if InCombatLockdown() then
+        -- Our C_EventScheduler/C_AreaPoiInfo reads can push a synchronous
+        -- update to the world map; under lockdown that taints Blizzard's
+        -- protected pin calls, so wait for combat to end.
+        self:QueueRegenRefresh()
+        return
+    end
+
     self.refreshCount = self.refreshCount + 1
     CancelTimer(self, "refreshTimer")
     CancelTimer(self, "eventTimer")
 
-    if not C_EventScheduler.HasSavedReminders() and not HasPendingStarts(self.reminderStates) then
+    if not securecallfunction(C_EventScheduler.HasSavedReminders) and not HasPendingStarts(self.reminderStates) then
         CancelTimer(self, "retryTimer")
         wipe(self.reminderStates)
         wipe(self.activeReminders)
         return
     end
 
-    local scheduledEvents = C_EventScheduler.GetScheduledEvents()
+    local scheduledEvents = securecallfunction(C_EventScheduler.GetScheduledEvents)
     if not scheduledEvents then
-        C_EventScheduler.RequestEvents()
+        securecallfunction(C_EventScheduler.RequestEvents)
         self:ScheduleRetry()
         return
     end
