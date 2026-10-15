@@ -1,4 +1,4 @@
-## Interface: 120100
+## Interface: 120105
 ## Title: Better Event Reminders
 ## Notes: Displays an on-screen alert for reminders set on map events.
 ## Author: Sara Schulze Øverby
